@@ -196,7 +196,7 @@ import {WebSocketServer, WebSocket} from "ws"
 const wss = new WebSocketServer({port : 8080})
 
 let userCount = 0
-let allSockets : WebSocket = [] // made an array to store all the user who connect to the server 
+let allSockets : WebSocket[] = [] // made an array to store all the user who connect to the server 
 // Type is given as typescript will then start to complain ki iska type do 
 // NOTICE and remember the type of array made by us has type WebSocket as ye socket store krne ke kaam aa rha h and socket are of type WebSocket (also dont forget to import it from "ws")
 
@@ -215,15 +215,86 @@ wss.on("connection", (socket) => {
             socket.send(msg.toString() + ":sent from the server")     
         });
         // 2nd way -> using simple for loop 
-        for(let i = 0; i < allSockets.size(); i++){
+        for(let i = 0; i < allSockets.size; i++){
             const s = allSockets[i]
             s.send(msg.toString() + ":sent from the server")
         }
         // 3rd way -> using map 
         // BUT MAP USE KRNE SE NAYA ARRAY BAN JATA H AND USKE ANDAR value chli jati h nayi wali(although it will work the same as forEach and simple for loop) so avoid using it here  
+        // ABOVE IS THE WAY TO BROADCAST THE MESSAGE TO ALL THE USER CONNECTED TO THE SERVER
     })   
 })
 ```
+
+> :pushpin:<span style="color:orange">**Remember ->**</span> **`WebSocket()` is a function which already exists inside the BROWSER just like the `fetch()`**
+
+>:round_pushpin: the `websocket` we are using here is not the native one (which is present inside the browser), it is of the library `ws`
+
+output ->
+
+<img src = "image-7.png" width=500 height=300>
+
+Notice you are sending "hello" and "hi" from two different users (one is `Postman` another is `Hoppscotch`, used to send the connection and message request to the server) BUT the message can be seen to both the user
+
+Now **Here is a bug ->** If you connect to both the user (here `postman` and `hoppscotch` and then disconnect one of them lets say `postman` and  then if you try to send the message through `hoppscotch` (as that is only active). the server tries to send it to both the user `postman` as well as `hoppscotch` BUT why the server is trying to send something on the dead connection. You must have logic for it)
+
+```javascript
+import {WebSocketServer, WebSocket} from "ws"
+
+const wss = new WebSocketServer({port : 8080})
+
+let userCount = 0
+let allSockets : WebSocket[] = [] 
+
+wss.on("connection", (socket) => {
+
+    allSockets.push(socket) 
+    userCount++
+    console.log("user connected #" + userCount)
+
+    socket.on("message", (msg) => {
+        console.log("message recieved" + msg.toString());
+        
+        for(let i = 0; i < allSockets.size; i++){ // 2
+            const s = allSockets[i]
+            s.send(msg.toString() + ":sent from the server")
+        }
+
+        // Writing the logic for allowing or sending to those which are currently active on the server, only those which has been actively connected to the connection
+        // 1st way -> using .filter() method 
+        socket.on("disconnect", () => {
+            // you delete from allSockets array 
+            allSockets = allSockets.filter(x => x != socket)
+        })
+        // 2nd method -> using the INBUILT method (readyState and WebSocket.OPEN)
+        // if you write the below code then no need to write // 2 code then 
+        for (let i = 0; i < allSockets.length; i++) {
+            if (allSockets[i].readyState === WebSocket.OPEN) {
+                allSockets[i].send(msg.toString() + ":sent from the server");
+            }
+        }
+        // 3rd method -> using forEach loop to do the same thing
+        allSockets.forEach((socket) => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(msg.toString() + ":sent from the server");
+            }
+        });
+
+    })   
+})
+```
+Now the server will **not send the message to those users which are disconnected**
+
+So you have made your **Chat app** (more precisely saying `backend` of it)
+
+## **Writing the frontend for the project**
+----------
+
+Basically you have to write the user side code or design the code for user (**precisely saying you have to write `client` side code**)
+
+what we were doing using the `Postman` or `Hoppscotch`, now that you have to make it by your own 
+
+
 
 
 
