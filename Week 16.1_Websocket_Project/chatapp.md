@@ -128,10 +128,102 @@ Notice random text recieved here as we have send this text only and it is gettin
 
 **so server is able to CATCH the message jo usko aage bhejna h**
 
-Now comes **Step 2 ->** How to broadcast the message or message jo `websocket` server ne accept kiya usko aage kaise bheje to an existing client ??
+Now comes **Step 2 ->** message jo `websocket` server ne accept kiya usko aage kaise bheje to an existing client or simply saying how to send back some message to the user who sent some message to the server ??
 
+to do this we use `socket.send()`
 
+```javascript
+import {WebSocketServer} from "ws"
 
+const wss = new WebSocketServer({port : 8080})
+
+let userCount = 0
+
+wss.on("connection", (socket) => {
+    userCount++
+    console.log("user connected #" + userCount)
+
+    socket.on("message", (msg) => {
+        console.log("message recieved" + msg.toString()); 
+        // wrote inside the .on message as msg variable (jiske andar msg aayega) isi function  ke andar defined h hence agar bahar .send() likhoge to msg variable ko kaise access kroge
+        // the below line of code is just sending back the message it recieved 
+        socket.send(msg.toString() + ":sent from the server") 
+    })   
+})
+```
+
+output ->
+
+<img src = "image-6.png" width=400 height=200>
+
+Notice the arrow up (which means user has sent this) and arrow down (which means server ne kya respond kiya)
+
+**You have made a bidirectional communication(user can send the msg to server and vice versa)**
+
+Now you can play around it making more fancier 
+
+lets say after user sends the msg then after 1 second, the server will respond with same message to the user. how to do this ??
+
+```javascript
+import {WebSocketServer} from "ws"
+
+const wss = new WebSocketServer({port : 8080})
+
+let userCount = 0
+
+wss.on("connection", (socket) => {
+    userCount++
+    console.log("user connected #" + userCount)
+
+    socket.on("message", (msg) => {
+        console.log("message recieved" + msg.toString());
+        
+        // done the above task using the setTimeout function
+        setTimeout(() => {
+            socket.send(msg.toString() + ":sent from the server")
+        }, 1000);
+    })   
+})
+```
+
+**Now the real thing comes ->** How to broadcast the message recieved from any user to any of the user connected through the server ??
+
+solving the above problem ->
+
+```javascript
+import {WebSocketServer, WebSocket} from "ws"
+
+const wss = new WebSocketServer({port : 8080})
+
+let userCount = 0
+let allSockets : WebSocket = [] // made an array to store all the user who connect to the server 
+// Type is given as typescript will then start to complain ki iska type do 
+// NOTICE and remember the type of array made by us has type WebSocket as ye socket store krne ke kaam aa rha h and socket are of type WebSocket (also dont forget to import it from "ws")
+
+wss.on("connection", (socket) => {
+
+    allSockets.push(socket) // whenever a new connection comes (means new user connected) push it in the array made
+    userCount++
+    console.log("user connected #" + userCount)
+
+    socket.on("message", (msg) => {
+        console.log("message recieved" + msg.toString());
+
+        // As msg jo recieve hua h wo sare user (i.e. socket) jo currently stored inside the allSockets array unko bhejna h so used loop to do this 
+        // 1st way -> using forEach loop
+        allSockets.forEach((socket) => {
+            socket.send(msg.toString() + ":sent from the server")     
+        });
+        // 2nd way -> using simple for loop 
+        for(let i = 0; i < allSockets.size(); i++){
+            const s = allSockets[i]
+            s.send(msg.toString() + ":sent from the server")
+        }
+        // 3rd way -> using map 
+        // BUT MAP USE KRNE SE NAYA ARRAY BAN JATA H AND USKE ANDAR value chli jati h nayi wali(although it will work the same as forEach and simple for loop) so avoid using it here  
+    })   
+})
+```
 
 
 
