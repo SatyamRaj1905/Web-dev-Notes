@@ -87,6 +87,51 @@ Now send the connection request to the server via `Postman` and you will see the
 
 code is working fine
 
+Now lets move towards slight tough things to build 
+
+:bulb:**What i want ??**
+
+-> i want these things to be handled 
+
+1. **websocket server** pr koi message lene wala function hona chahiye as we to BROADCAST the message, message phle lena jaruri h  and then 
+2. **How to broadcase the message recieved ??**
+
+first handling the `1.` case 
+
+```javascript
+import {WebSocketServer} from "ws"
+
+const wss = new WebSocketServer({port : 8080})
+
+let userCount = 0
+
+wss.on("connection", (socket) => {
+    userCount++
+    console.log("user connected #" + userCount)
+
+    // making a handler for the user connected and taking and then printing the message on console sent by him/her 
+    // When ever new message will come the control will reach here and that message will get logged on 
+    // upar ke do line hmesa chlenge jb v koi naya user connect krega BUT 
+    // neech .on() tbhi chlega jb koi user message krega 
+    socket.on("message", (msg) => {
+        console.log("message recieved" + msg.toString());  
+    })
+    // Thats how server recieve the message 
+})
+```
+
+the above code output
+
+<img src = "image-5.png" width=400 height=200>
+
+Notice random text recieved here as we have send this text only and it is getting logged on the console
+
+**so server is able to CATCH the message jo usko aage bhejna h**
+
+Now comes **Step 2 ->** How to broadcast the message or message jo `websocket` server ne accept kiya usko aage kaise bheje to an existing client ??
+
+
+
 
 
 
