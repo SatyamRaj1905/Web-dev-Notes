@@ -557,7 +557,144 @@ if `Hoppscotch` wala user lets say `"room" : "green"` join then wo message nhi d
 
 Notice message nhi aaya `Hoppscotch` wale user after connecting as he / she has joined **green room not red**
 
-so you have made a chat app 
+so you have made a chat app backend 
+
+Now lets come to the **Frontend Building part which will occur using react**
+
+for making the frontend, create a seperate folder named `frontend` (or as per your wish) and as you have initialised the empty `react` project using vite
+
+remember to install all the dependencies by running the command 
+
+```javascript
+npm install
+```
+
+Now go to `App.tsx` and we will be using **Tailwind css** for quickly making the project
+
+so set up the tailwind in your project by reading through the documentation 
+
+```javascript
+
+function App(){
+    useEffect(() => {
+        const [messages, setMessages] = useState(["hi there"]) // hardcoded hi there ki jb v koi site pe aayega usko hi there dikhega
+        const wsRef = useRef(); // 2
+        
+        ws.onmessage = (event) => {
+            const ws = new WebSocket("http://localhost:8080") // jb v App component mount sirf tbhi connect krna baar - baar nhi to websocket server 
+            setMessages(m => [...m, event.data])// if "m" is the initial message then final messages will be array with all the previous messages (...m code is doing this) along with the new messages which came (event.data code is doing this part) from the server 
+        }
+        wsRef.current = ws // jo v aaya by doing the above logic usko wsRef me store kro
+
+        // below is the logic to connect the user to a room 
+        // although you could have directly use the below code and directly send the request to the server BUT THIS WILL GIVE ERROR can you guess why ??
+        ws.send(JSON.stringfy({
+            type : "join",
+            payload : {
+                roomId : "red"
+            }
+        }))
+        // Because -> SERVER KAHIN DUR H, usko connect to hone do ache se phle turant he kyu send kr rhe ho so either wrap it in TRY-CATCH block or the library gives you built in function .onopen() -> jb connection ban jaye tb iske andar ka function chlega 
+        // so the updated part of the above code 
+        // ye hardcoded h as isse jo v user aayega wo sb ke sb "red" room me chle jayenge 
+        ws.onopen(() => {
+            ws.send(JSON.stringfy({
+                type : "join",
+                payload : {
+                    roomId : "red"
+                }
+            }))
+        })
+    }, [])
+    
+    return (
+        <div className='h-screen bg-black'>
+            <br /><br /><br />
+            <div className = 'h-[85vh]'>
+                {messages.map(message  => 
+                    <div className = 'm-8'>
+                        <span className = 'bg-white text-black rounded p-4'>{message}
+                        </span>
+                    </div>)} //iterating over all the message and making or rendering all the message by making a div 
+            <div className='w-full bg-white flex'>
+                <input id = "messageBox" className="flex—1 p-4"></input>
+                <button onClick = {() => {
+                            const msgByUser = document.getElementById("messageBox").value // Input box me jo v value h usko extract kiya
+                            wsRef.current.send(JSON.stringfy({ // as you can only send string so jo v object bhejoge (websocket schema ke according he bhejoge waise to) to server usko string me convert krke bhejna
+                                type : "chat",
+                                payload : {
+                                    message : msgByUser,
+                                } 
+                            })) // as "ws" iss bracket me defined nhi h to error dega if you write ws.send instead of wsRef.current.send (see it you have defined "ws" inside the useEffect so here we will use useRef hook to make its value available here see // 2 line of code above )
+
+                        }
+
+                    }
+                    className='bg-purple-6ØØ text—white p-4'>
+                    Send message
+                </button>
+            </div>
+        </div>
+    )
+}
+```
+
+<span style="color:orange">**Remember ->**</span> above code will perfectly fine but do-do baar message display hoga due to **<StrictMode></StrictMode> present in `react`**
+
+so just go to the file `main.tsx` and **remove the `<StrictMode></StrictMode>` which is currently wrapping the `<App />` and just keep the `<App />`**
+
+>:pushpin:<span style="color:orange">**Remember ->**</span> **Whenever you have `<StrictMode></StrictMode>` on aapka `useEffect` DO BAAR RUN HOTA H**
+
+-> here isliye 2 connection ban rha(both of them connected to the same server, dono se jb message aata h to 2 baar setMessage ye kr de rha h and hence you see 2 times the same message)
+
+**You can also CLEANUP inside the `useEffect`**
+
+```javascript
+useEffect(() => {
+        const [messages, setMessages] = useState(["hi there"]) 
+        const wsRef = useRef(); 
+        
+        ws.onmessage = (event) => {
+            const ws = new WebSocket("http://localhost:8080") 
+            setMessages(m => [...m, event.data])
+        }
+        wsRef.current = ws 
+
+        ws.send(JSON.stringfy({
+            type : "join",
+            payload : {
+                roomId : "red"
+            }
+        }))
+         
+        ws.onopen(() => {
+            ws.send(JSON.stringfy({
+                type : "join",
+                payload : {
+                    roomId : "red"
+                }
+            }))
+        })
+        // Wrote the cleanup logic to avoid the <StrictMode>
+        return () => {
+            ws.close() // means pehle purana wala websocket clean kro and then naya wala bnao 
+        }
+}, [])
+```
+
+Output ->
+
+<img src = "image-11.png" width=600 height=300>
+
+Notice you have 2 different tab on the Browser and one on Postman still all the messages are being seen to all theose who have connected to the same room ("red") and even tab has been given capability to send the message 
+
+
+
+
+
+
+
+
 
 
 
