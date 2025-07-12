@@ -301,7 +301,7 @@ some of the key points which can be taken from it is
     + For ex -> in case of metaverse game, your schema will have two things (or two types of things it can send) -> **Movement** and **Interaction Message(usually sent in `json` and later converted to `string`) due to the below reason**
 
 
->:pushpin:<span style="color:orange">**Remember ->**</span> **`Websocket` ke through tm sirf `string` bhej skte ho, although you can change anything almost (like `json`..) to `string` via `.toString()` method**
+>:pushpin:<span style="color:orange">**Remember ->**</span> **`Websocket` ke through tm sirf `string` ya `binary` bhej skte ho, although you can change anything almost (like `json`..) to `string` via `.toString()` method**
 
 
 Lets make the `Websocket` schema for our project
@@ -385,7 +385,179 @@ creating `websocket` schema for this
 }
 ```
 
-Remeber this is the most basic project to build the chat app, above one only you can also send **chat count** and design then `websocket` schema for it and so on....
+Remeber this is the most basic project to build the chat app, above one only you can also send **chat count (kitne log h av room me)** and design then `websocket` schema for it and so on....
+
+Now reviewing the `index.ts` file 
+
+```javascript
+import {WebSocketServer, WebSocket} from "ws"
+
+const wss = new WebSocketServer({port : 8080})
+
+// let allSockets : WebSocket[] = [] // global array ka point NHI h ab i dont want an array jo sare socket ko support kre, i want something like this 
+
+let allSockets = {// READ about MAPs and RECORDs while dealing with typescript (for the complication part, here used OBJECT instead of them)
+    "3425" : [socket1, socket2],
+    "122343" : [socket3, socket4, socket6]
+} // Eventually ye kuch aisa dikhna chahiye jahan par to every room, user (socket) which is present inside it should be shown and combinely stored inside the array 
+// THE ABOVE IS THE OPTIMAL WAY but there exist another way to do the above thing 
+// 2nd way to do the above thing
+
+interface User {
+    socket : WebSocket,
+    room : string
+}
+let allSockets : User[] = [] // It will still be ARRAY but assigned to custom made array User made above using interface
+// The above one will look something like this 
+[
+    {socket : socket1, room : "3425"},
+    {socket : socket2, room : "12343"},
+    {socket : socket3, room : "3425"} // socket1 and socket3 are in the same room 
+]
+
+// Lets use the 2nd approach (interface making) and proceed 
+
+wss.on("connection", (socket) => {
+    
+    // allSockets.push(socket)   // Now i dont want ki jaise he connection aaye push kr do turant global array me aise mujhe ye v to puchna h ki kaun se room ko join krna h user ko (we dont want ki wo kahin v chla jaye) so commented this line 
+
+    socket.on("message", (msg) => {
+        // console.log("message recieved" + msg.toString());
+        
+        // for(let i = 0; i < allSockets.size; i++){ // 2
+        //     const s = allSockets[i]
+        //     s.send(msg.toString() + ":sent from the server")
+        // }
+        // Can you tell me how "msg" will now look like (it will be string, but look like object (see section // 2 below after this code for clear understanding) as you have defined the schema for sending the message from the user end 
+        {object which will have type and payload defined}
+        // This makes sure ki banda "join" krna chah rha h ya "chat" krna chah rha h (according to the schema made above), ye server ko pta chle 
+        // Websocket dont have CONCEPT of METHODs and ROUTEs as that in EXPRESS (you cant write something like this -> wss.on("/join", somelogic to join)), ek he jagah pe message aayega which is here inside the .on("message") and here i have to check which type it is of 
+        // Now as the msg is of string-cum-object so first you will convert this string to object (see // 3) and then you will write your logic
+        // using the above concept 
+
+        const parsedMessage = JSON.parse(msg as unknown as string) // convert string to object (as wala bs typescript complain na kre usliye likha h as ts dont know ki ye binary h ya string h so made both)
+        // you can also use @ts-ignore as always just above this line to remove the error 
+        // if user has followed the schema then user do he kaam kr skta h either join the room or chat in the room 
+        if(parsedMessage.type === "join"){ // if the user is trying to join the room then only push 
+            allSockets.push({
+                socket, // ye user h
+                room : parsedMessage.payload.roomId // if user has followed the correct schema then he / she must have sent this, this is the room that the user wants to join 
+            })
+        }
+        // why we are storing -> the answer for this will be given by the below code 
+        // now when ever the user wants to chat, you first have to check ki iss bande ka room kaun sa h (so used .find and iterate over all sockets to do that) 
+        if(parsedMessage.type === "chat"){
+            const currentUserRoom = allSockets.find((x) => x.socket == socket).room 
+            // other way of writing the above line 
+            let currentUserRoom = null
+            for(let i = 0; i < allSockets.length; i++){
+                if (allSockets[i].socket == socket){ // agar yahan pr(server pr) ek entry h for this user (current socket) to uska room dhundho phir
+                    currentUserRoom = allSockets[i].room // then that user belongs to the room he / she has joined with 
+
+                }
+            }
+            // after you find the currentUser room, then simply iterate over all the users and jo jo uss room me h usko message bhej do 
+            for (let i = 0; i < allSockets.length; i++){
+                if(allSockets[i].room == currentUserRoom){ // means agar koi aur h jo isi room me h to un sbko ye message send kr do bas (handled the case where user jis room me message send krna chahta h usi room ke log dekh payenge)
+                    allSockets[i].socket.send(parsedMessage.payload.message)
+
+                }
+            }
+        }
+
+        // Logic for if someone has disconnected
+        socket.on("disconnect", () => {
+            allSockets = allSockets.filter(x => x != socket)
+        })
+
+    })   
+})
+```
+
+**// 2** -> Example of Object stored inside the String
+
+<img src = "image-8.png" width=400 height=400>
+
+Notice `.` notation NHI kaam kr rha on `string` as it works only on `Object`
+
+**// 3 code** <span style="color:orange">**Remember these important conversions**</span>
+
+**to convert `Object` to `string`** use 
+
+```javascript
+JSON.stringfy(object_name)
+```
+
+**to convert `string` to `Object`** use
+
+```javascript
+JSON.parse(string_name)
+```
+
+final code looks something like this :-
+
+```javascript
+import {WebSocketServer, WebSocket} from "ws"
+
+const wss = new WebSocketServer({port : 8080})
+
+interface User {
+    socket : WebSocket,
+    room : string
+}
+
+let allSockets : User[] = []
+
+wss.on("connection", (socket) => {
+
+    socket.on("message", (msg) => { 
+
+        const parsedMessage = JSON.parse(msg as unknown as string) 
+        if(parsedMessage.type === "join"){ 
+            allSockets.push({
+                socket, 
+                room : parsedMessage.payload.roomId
+            })
+        }
+        if(parsedMessage.type === "chat"){
+            // const currentUserRoom = allSockets.find((x) => x.socket == socket).room 
+            // other way of writing the above line 
+            let currentUserRoom = null
+            for(let i = 0; i < allSockets.length; i++){
+                if (allSockets[i].socket == socket){ 
+                    currentUserRoom = allSockets[i].room 
+                }
+            }
+
+            for (let i = 0; i < allSockets.length; i++){
+                if(allSockets[i].room == currentUserRoom){
+                    allSockets[i].socket.send(parsedMessage.payload.message)
+
+                }
+            }
+        }
+        // Logic for if someone has disconnected
+        socket.on("disconnect", () => {
+            allSockets = allSockets.filter(x => x != socket)
+        })
+
+    })   
+})
+```
+
+output -> 
+
+<img src = "image-9.png" width=600 height=300>
+
+Notice message has been sent from `Postman` (left pic) as `"type" : "chat"` h and recieve ho rha h both is `Postman` as well as in `Hoppscotch` (right pic) as `Hoppscotch` wale ne `"room" : "red"` means jisme `Postman` joined h and message bheja h ("hi there red room people") usi ko join kiya h see the `"type" : "join"` now vice versa can also occur (they can now communicate between them)
+
+if `Hoppscotch` wala user lets say `"room" : "green"` join then wo message nhi dekh paega as you can see below 
+
+<img src = "image-10.png" width=600 height=300>
+
+Notice message nhi aaya `Hoppscotch` wale user after connecting as he / she has joined **green room not red**
+
+so you have made a chat app 
 
 
 
