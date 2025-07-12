@@ -617,7 +617,10 @@ function App(){
                         </span>
                     </div>)} //iterating over all the message and making or rendering all the message by making a div 
             <div className='w-full bg-white flex'>
-                <input id = "messageBox" className="flex—1 p-4"></input>
+                <input id = "messageBox" className="flex—1 p-4"></input> // 1st way is to give id and 2nd one (better and optimal way is to use useRef), here using 1st one approach 
+                // if using 2nd approach then 
+                <input ref = {inputRef} className="flex—1 p-4"></input>
+                // and then instead of document.getElementById("messageBox") write inputRef.current
                 <button onClick = {() => {
                             const msgByUser = document.getElementById("messageBox").value // Input box me jo v value h usko extract kiya
                             wsRef.current.send(JSON.stringfy({ // as you can only send string so jo v object bhejoge (websocket schema ke according he bhejoge waise to) to server usko string me convert krke bhejna
@@ -687,6 +690,35 @@ Output ->
 <img src = "image-11.png" width=600 height=300>
 
 Notice you have 2 different tab on the Browser and one on Postman still all the messages are being seen to all theose who have connected to the same room ("red") and even tab has been given capability to send the message 
+
+**Some important question ??**
+
+:bulb:**How do you send images in the chat room ??**
+
+-> in practical, when you click on the button to upload the image, it goes to the **AWS S3 which has the job to convert the image to url (AS WEBSOCKET ACCEPTS URL as URL is of string format) and from there everyone gets to see the image**
+
+:bulb:**How you usually scale these type of site ??**
+
+<img src = "image-12.png" width=500 height=300>
+
++ **Circle ->** denotes user 
++ **Rectangle ->** denotes server 
++ **Ellipse ->** denotes pub-sub
++ **Biggest Ellipse ->** denotes pub-sub
+
+Now we can actually connect 80k - 90k user using one server and if we have three servers then 
+
+-> approx -> 270k users now 
+
+if 2 pubsub are connecte to these three then servers can work on full potential as if ek server pe load badha then dusre server pe transfer krne ka kaam **pub-sub** krega and **The more deeper it gets the more no. of users you can make them connect**
+
+:bulb:**Why called as Fan out architecture ??**
+
+Because it looks like __PANKHA (hath wala pankha used in our house)__
+
+
+
+
 
 
 
