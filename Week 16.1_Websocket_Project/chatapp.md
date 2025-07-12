@@ -261,7 +261,7 @@ wss.on("connection", (socket) => {
         }
 
         // Writing the logic for allowing or sending to those which are currently active on the server, only those which has been actively connected to the connection
-        // 1st way -> using .filter() method 
+        // 1st way -> using .filter() method (filtering out those who are disconnected)
         socket.on("disconnect", () => {
             // you delete from allSockets array 
             allSockets = allSockets.filter(x => x != socket)
@@ -293,6 +293,108 @@ So you have made your **Chat app** (more precisely saying `backend` of it)
 Basically you have to write the user side code or design the code for user (**precisely saying you have to write `client` side code**)
 
 what we were doing using the `Postman` or `Hoppscotch`, now that you have to make it by your own 
+
+If you have seen Harkirat's Metaverse game then you can understand that how websocket works in real life.
+
+some of the key points which can be taken from it is 
++ Every websocket must have schema that should be followed by both client and server (so that client kuch v na bhej de)
+    + For ex -> in case of metaverse game, your schema will have two things (or two types of things it can send) -> **Movement** and **Interaction Message(usually sent in `json` and later converted to `string`) due to the below reason**
+
+
+>:pushpin:<span style="color:orange">**Remember ->**</span> **`Websocket` ke through tm sirf `string` bhej skte ho, although you can change anything almost (like `json`..) to `string` via `.toString()` method**
+
+
+Lets make the `Websocket` schema for our project
+
+## **Websocket Schema for this project ??**
+
+To design any websocket schema just ask these things :-
+
++ **What the user can send ??**
++ **What the server can send / recieve??**
+
+> :pushpin:**based on the above response, make a `websocket` schema for every possible thing which client can send and server can recieve or send**
+
+Now we are trying to build the complicated part (ek room ka user usi room ke user ke sath interact kr skta h, Dusre room me bhul ke v nhi jana chahiye)
+
+Now for our project, `client` can send these two things to connect to the `server`
++ **Join a room**
++ **Send a message**
+
+The first thing which you will do is to ask / send to the server **that i want to JOIN a particular room ??**
+
+so lets start making the `websocket` schema (**always make it in `json` format as yahan pr tm data bhejne and recieve krne ka kaam kr rhe ho. Later you can change it to `string` using `.toString()` method whenever you need to use it**)
+
+
+```json
+{
+    "type" : "join",
+    "payload" : {
+        "roomId" : "123",
+        "name" : "satyam"
+    }
+}
+```
+Generally yhi schema follow kiya jata h from `client` side  (consisting of two keys with values)
+
++ **`"type"` ->** **Means `user` kya krna chahta h, you write here**
++ **`"payload"` ->** **Means `user` kya - kya bhejega to make sure he / she connects to the server**
+    + For ex -> here you are sending `roomId` and `name`, if the room required more things to do then add some more things like -> `image`, `avatar` and etc..
+
+lets keep it simple by just adding the `roomId` for now ->
+
+The below is the `websocket` schema for **joining a room**
+
+```json
+{
+    "type" : "join",
+    "payload" : {
+        "roomId" : "123",
+    }
+}
+```
+
+Similarly making `websocket` schema for **sending the message**
+
+```json
+{
+    "type" : "chat",
+    "payload" : {
+        "message" : "hi there", // lets suppose user want to send this to the server
+    }
+}
+```
+
+Now coming to the second question 
+
+**What the server will send to the user ??**
+
++ **Message which the server recieved**
+
+creating `websocket` schema for this 
+
+```json
+{
+    "type" : "chat",
+    "payload": {
+        "message" : "hi there", // Not attaching the message sent by the user yet, currently server is sending "hi there" no matter what the message has came from the user
+        // you can add these along with other things alos but for sake of simplicity lets just send "message" only
+        "sender" : "satyam",
+        "senderId" : "12345"
+    }
+}
+```
+
+Remeber this is the most basic project to build the chat app, above one only you can also send **chat count** and design then `websocket` schema for it and so on....
+
+
+
+
+
+
+
+
+
 
 
 
